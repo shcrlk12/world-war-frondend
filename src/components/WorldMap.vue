@@ -1609,42 +1609,149 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted } from 'vue';
+import { onMounted, onBeforeMount } from 'vue';
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface Transform {
+  trnaslateX: number;
+  translateY: number;
+  scale: number;
+}
+
+onBeforeMount(() => {
+	document.documentElement.style.setProperty('--translate-x', `0px`);
+	document.documentElement.style.setProperty('--translate-y', `0px`);
+	document.documentElement.style.setProperty('--scale', `1`);
+})
 
 onMounted(() => {
-  const countries = document.querySelectorAll('path');
-    countries.forEach(country => {
-      country.addEventListener('click', () => {
-        let svg = document.getElementById('world-map-svg');
+	let svg = document.getElementById('world-map-svg');
+	
+	const countries = document.querySelectorAll('path');
+		countries.forEach(country => {
+			country.addEventListener('click', (event) => {
 
-        if(svg.className.animVal === 'animationkjwon')
-          return;
+				const rect = country.getBoundingClientRect();
+				const svgRect = svg.getBoundingClientRect();
 
-        const countryId = country.id; // 나라의 고유 식별자를 가져옵니다.
-        const rect = country.getBoundingClientRect();
-        const svgRect = svg.getBoundingClientRect();
-        country.setAttribute('fill', '#000');
-        let center = {
-          x: (rect.x + rect.width/2), 
-          y: (rect.y + rect.height/2)
-        }
+				let center: Position = {
+					x: (rect.x + rect.width/2), 
+					y: (rect.y + rect.height/2)
+				}
+				let scale = rect.width > rect.height ? svgRect.width / rect.width / 3 : svgRect.height / rect.height / 3;
 
-        let width: number = svgRect.width/2 - center.x + svgRect.x;
-        let height: number = svgRect.height/2 - center.y + svgRect.y;
-        let scale = rect.width > rect.height ? svgRect.width / rect.width / 3 : svgRect.height / rect.height / 3;
-        
+				enlargeMap(svg, center, scale);
+			});
+		});
 
-        svg.classList.add('animationkjwon');
-        document.documentElement.style.setProperty('--translate-x', `${width}px`);
-        document.documentElement.style.setProperty('--translate-y', `${height}px`);
-        document.documentElement.style.setProperty('--scale', `${scale}`);
+// 	addEventListener("mousedown", mouseDown);
 
-            country.addEventListener('click', () =>{
-              alert('click');
-            })
-          });
-        });
+	addEventListener("wheel", onwheel);
+
 });
+
+const getAbsolutePositionFromSVG = (targetSVG: Element, event): Position => {
+	let targetRect = targetSVG.getBoundingClientRect();
+	console.log('event.ClientX' , targetRect.left, event.clientX)
+	let absolutePosition: Position ={
+		x: event.clientX - targetRect.left,
+		y: event.clientY - targetRect.top 
+	}
+	return absolutePosition;
+}
+
+const enlargeMap = (targetSVG: Element ,centerPositon: Position, scale: number) => {
+
+	let parentRect = targetSVG.parentElement.getBoundingClientRect();
+	let targetRect = targetSVG.getBoundingClientRect();
+	console.log(centerPositon, scale)
+	console.log('width' ,parentRect.width, targetRect.width, centerPositon.x, targetSVG.getBoundingClientRect().left)
+	console.log('height' ,parentRect.height, targetRect.height, centerPositon.y, targetSVG.getBoundingClientRect().top)
+
+
+	// let width = centerPositon.x - (parentRect.width / 2  - targetSVG.getBoundingClientRect().left);
+	// let height = centerPositon.y - (parentRect.height / 2  - targetSVG.getBoundingClientRect().top);
+ 
+	let transform = getTransform();
+ 	let width, height; 
+	// if(targetSVG.getBoundingClientRect().left > 0){
+		width = (parentRect.width / 2 - (centerPositon.x - Math.abs(targetSVG.getBoundingClientRect().left))) / transform.scale;
+	// }
+	// else{
+	// 	width = targetSVG.getBoundingClientRect().width / 2 - centerPositon.x;
+	// }
+
+	// if(targetSVG.getBoundingClientRect().top > 0){
+		height = (parentRect.height / 2 - (centerPositon.y - Math.abs(targetSVG.getBoundingClientRect().top))) / transform.scale;
+	// }
+	// else{
+	// 	height = targetSVG.getBoundingClientRect().height / 2 - centerPositon.y;
+	// }
+
+
+console.log('scale', transform.scale)
+	document.documentElement.style.setProperty('--translate-x', `${transform.trnaslateX + width}px`);
+	document.documentElement.style.setProperty('--translate-y', `${transform.translateY + height}px`);
+	document.documentElement.style.setProperty('--scale', `${scale}`);
+	
+	targetSVG.classList.add('animationkjwon');
+}
+
+const getTransform = (): Transform => {
+	return {
+		trnaslateX: Number(document.documentElement.style.getPropertyValue('--translate-x').match('\\d+')),
+		translateY: Number(document.documentElement.style.getPropertyValue('--translate-y').match('\\d+')),
+		scale: Number(document.documentElement.style.getPropertyValue('--scale'))
+	};
+}
+const onwheel = (event) => {
+	let translateX = Number(document.documentElement.style.getPropertyValue('--translate-x').match('\\d+'))
+	let translateY = Number(document.documentElement.style.getPropertyValue('--translate-y').match('\\d+'))
+	let scale = Number(document.documentElement.style.getPropertyValue('--scale'))
+
+	let afterScale = scale + event.deltaY * -0.001;
+
+	let svg = document.getElementById('world-map-svg');
+	
+	let centerPosition: Position = {
+		x: (-svg.getBoundingClientRect().left + event.clientX) / scale, 
+		y: (-svg.getBoundingClientRect().top + event.clientY) / scale
+	}
+
+
+	enlargeMap(svg, getAbsolutePositionFromSVG(svg, event), afterScale < 1 ? 1 : afterScale)
+};
+
+const mouseDown = (event) => {
+	let svg = document.getElementById('world-map-svg');
+	let originViewBox: string = svg.getAttribute('viewBox');
+	let originViewBoxArray = originViewBox.split(' ');
+
+	let scale = Number(document.documentElement.style.getPropertyValue('--scale'));
+	const mouseMove = (event2) => { 
+		let originalX = event.clientX;
+		let originalY = event.clientY;
+		
+		let moveX = originalX - event2.clientX;
+		let moveY = originalY - event2.clientY;
+		
+		console.log(svg.clientHeight)
+		svg.setAttribute('viewBox', `${(Number(originViewBoxArray[0]) + moveX)/scale} ${(Number(originViewBoxArray[1]) + moveY)/scale < 0 ? 0 : (Number(originViewBoxArray[1]) + moveY)/scale} 1576 1102`)
+	};
+
+	const mouseUp = (event2) => { 
+		removeEventListener('mousemove', mouseMove);
+		removeEventListener('mouseup', mouseUp);
+	};
+	addEventListener("mousemove", mouseMove);
+
+	addEventListener("mouseup", mouseUp);
+}
+
 </script>
 
 <style lang="scss" scoped>
