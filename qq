@@ -1,0 +1,31 @@
+[33mcommit 5509baa8f8ff8fe9874dec6b02fef5c632330cb8[m[33m ([m[1;36mHEAD[m[33m)[m
+Author: JeongWon Kim <shcrlk12@naver.com>
+Date:   Wed Oct 25 21:02:20 2023 +0900
+
+    zoom in out 과 map 확대 분리
+
+[33mcommit 288e9f4c652e90ddd08d23251a7f1ef51e2771cc[m[33m ([m[1;31morigin/feature/1-world-map-wheel-up-down[m[33m)[m
+Author: kimjeongwon <kjwon@unison.co.kr>
+Date:   Wed Oct 25 17:19:29 2023 +0900
+
+    #1 1. wheel move position이 화면의 중앙으로 오도록 구현함.
+    2. wheel move position이 화면의 중앙으로 오면 움직임이 어색하단거를 깨달음....
+    3. wheel 이 있는곳의 이미지를 고정하는 것으로 구현해야 할듯함.
+
+[33mcommit 4b5b2aeb1ce2e7a7d9430376d9ac3a6465c63880[m[33m ([m[1;31morigin/release[m[33m, [m[1;31morigin/develop[m[33m, [m[1;32mdevelop[m[33m)[m
+Author: kimjeongwon <kjwon@unison.co.kr>
+Date:   Fri Oct 20 16:53:10 2023 +0900
+
+    1. world map svg파일로 생성하고 이동하게끔 구현.
+
+[33mcommit 56607e6e91ec8823008c5db7dfb66922a32cb73e[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m
+Author: JeongWon Kim <shcrlk12@naver.com>
+Date:   Thu Oct 19 21:54:12 2023 +0900
+
+    1. test 추가
+
+[33mcommit 505cbf04ae9e08d4eae67fb20328b2e655ba236d[m
+Author: kimjeongwon <kjwon@unison.co.kr>
+Date:   Thu Oct 19 16:55:28 2023 +0900
+
+    first commit
