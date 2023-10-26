@@ -1608,184 +1608,198 @@
 	</div>
   </template>
   
-  <script lang="ts" setup>
-  import { onMounted, onBeforeMount } from 'vue';
+<script lang="ts" setup>
+import { onMounted, onBeforeMount } from 'vue';
+
+interface Position {
+	x: number;
+	y: number;
+}
+
+interface Transform {
+	trnaslateX: number;
+	translateY: number;
+	scale: number;
+}
+
+let oldWidth: number | undefined;
+let oldHeight: number | undefined;
+let oldScale: number | undefined = 1;
+let oldOrigin = {
+	x: 0,
+	y: 0
+}
+
+onBeforeMount(async () => {
+	document.documentElement.style.setProperty('--translate-x', `0px`);
+	document.documentElement.style.setProperty('--translate-y', `0px`);
+	document.documentElement.style.setProperty('--scale', `1`);
+})
+
+function test2(){
+	return new Promise((resolve) => {
+			setTimeout(function(){
+				resolve()
+			}, 40);
+		})
+}
+
+onMounted(() => {
+	const countries = document.querySelectorAll('path');
+	countries.forEach(country => {
+		country.addEventListener('dblclick', (event) => {
+			
+				let svg = document.getElementById('world-map-svg');
+				const rect = country.getBoundingClientRect();
+				const svgRect = svg?.getBoundingClientRect();
+
+				let scale = rect.width > rect.height ? svgRect.width / rect.width / 3 : svgRect.height / rect.height / 3;
+				
+				let center: Position = {
+					x: ((rect.left - svg.getBoundingClientRect().left)/oldScale + rect.width/2), 
+					y: ((rect.top - svg.getBoundingClientRect().top)/oldScale + rect.height/2)
+				}
+				console.log('test', rect)
+				enlargeMap(svg, center, scale, event);
+			});
+		});
+
+	addEventListener("mousedown", mouseDown);
+
+	addEventListener("wheel", onwheel);
+
+});
+
+const getAbsolutePositionFromSVG = (targetSVG: Element, event): Position => {
+	let targetRect = targetSVG.getBoundingClientRect();
+	console.log('event.ClientX' , targetRect.left, event.clientX)
+	let absolutePosition: Position ={
+		x: event.clientX - targetRect.left,
+		y: event.clientY - targetRect.top 
+	}
+	return absolutePosition;
+}
+
+const enlargeMap = async (targetSVG: Element ,centerPositon: Position, scale: number, event) => {
+	let svg = document.getElementById('world-map-svg');
+	
+	console.log('centerPosition' , centerPositon, oldScale)
+	await animation(2, (t) => {
+		svg.style.scale = oldScale + ((scale - oldScale) * t);
+		svg.style.transformOrigin = `${oldOrigin.x + ((centerPositon.x - oldOrigin.x) * t)}px ${oldOrigin.y + ((centerPositon.y - oldOrigin.y) * t)}px`; 
+		console.log('test')
+	})
+
+	oldScale = scale;
+	let tmep = svg.style.transformOrigin.split(' ');
+	oldOrigin = {
+		x: Number(tmep[0].match('\\d+')),
+		y: Number(tmep[1].match('\\d+'))
+	}
+}
+
+function executeCallback(frameInterval, frameCount, i){
+	return new Promise((resolve) => {
+			setTimeout(function(){
+				resolve(ease(i / frameCount))
+			}, frameInterval);
+		})
+}
+
+async function animation(duration, cb){
+	return new Promise(async (resolve) => {
+		const frameCount = duration * 25;
+		const frameInterval = 40;
+	
+		for(var i = 1; i <= frameCount; i++)
+		{
+			await executeCallback(frameInterval, frameCount, i).then(cb)
+		}
+
+		resolve();
+	})
+}
+
+
+
+function ease(t) {
+  return (t < 0.5) ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+}
+
+const zoomInOut = (targetSVG: Element ,centerPositon: Position, scale: number, event: any) => {
+	let svg = document.getElementById('world-map-svg');
+
+	svg.style.scale = scale;
+	svg.style.transformOrigin = `${centerPositon.x / oldScale}px ${centerPositon.y / oldScale}px`;
+
+	console.log('centerPositon' , centerPositon, oldScale)
+	
+	oldScale = scale;
+}
+
+const getTransform = (): Transform => {
+	return {
+		trnaslateX: Number(document.documentElement.style.getPropertyValue('--translate-x').match('\\d+')),
+		translateY: Number(document.documentElement.style.getPropertyValue('--translate-y').match('\\d+')),
+		scale: Number(document.documentElement.style.getPropertyValue('--scale'))
+	};
+}
+
+const onwheel = (event) => {
+
+	let afterScale = oldScale + event.deltaY * -0.001;
+
+	let svg = document.getElementById('world-map-svg');
+	
+	let centerPosition: Position = {
+		x: (-svg.getBoundingClientRect().left + event.clientX) / oldScale, 
+		y: (-svg.getBoundingClientRect().top + event.clientY) / oldScale
+	}
+
+	zoomInOut(svg, getAbsolutePositionFromSVG(svg, event), afterScale < 1 ? 1 : afterScale, event);
+};
+
+const mouseDown = (event) => {
+	let svg = document.getElementById('world-map-svg');
+	let originViewBox: string = svg.getAttribute('viewBox');
+	let originViewBoxArray = originViewBox.split(' ');
+
+	let scale = Number(document.documentElement.style.getPropertyValue('--scale'));
+	const mouseMove = (event2) => { 
+		let originalX = event.clientX;
+		let originalY = event.clientY;
+
+		let moveX = originalX - event2.clientX;
+		let moveY = originalY - event2.clientY;
+		
+		console.log('svg.getBoundingClientRect().left', svg.getBoundingClientRect().left)
+
+		svg.setAttribute('viewBox', 
+		`${(Number(originViewBoxArray[0]) + moveX)/scale} 
+		${svg.getBoundingClientRect().left < 0 ? (Number(originViewBoxArray[1]) + moveY)/scale : 0} 
+		1576 1102`)
+	};
+
+	const mouseUp = (event2) => { 
+		removeEventListener('mousemove', mouseMove);
+		removeEventListener('mouseup', mouseUp);
+	};
+	addEventListener("mousemove", mouseMove);
+
+	addEventListener("mouseup", mouseUp);
+}
+</script>
   
-  interface Position {
-	  x: number;
-	  y: number;
-  }
-  
-  interface Transform {
-	  trnaslateX: number;
-	  translateY: number;
-	  scale: number;
-  }
-  onBeforeMount(() => {
-	  document.documentElement.style.setProperty('--translate-x', `0px`);
-	  document.documentElement.style.setProperty('--translate-y', `0px`);
-	  document.documentElement.style.setProperty('--scale', `1`);
-  })
-  
-  onMounted(() => {
-	  
-	  const countries = document.querySelectorAll('path');
-	  countries.forEach(country => {
-		  country.addEventListener('click', (event) => {
-			  
-				  let svg = document.getElementById('world-map-svg');
-				  const rect = country.getBoundingClientRect();
-				  const svgRect = svg?.getBoundingClientRect();
-  
-				  let center: Position = {
-					  x: (rect.x + rect.width/2), 
-					  y: (rect.y + rect.height/2)
-				  }
-				  
-				  let scale = rect.width > rect.height ? svgRect.width / rect.width / 3 : svgRect.height / rect.height / 3;
-  
-				  enlargeMap(svg, center, scale);
-			  });
-		  });
-  
-  // 	addEventListener("mousedown", mouseDown);
-  
-	  addEventListener("wheel", onwheel);
-  
-  });
-  
-  const getAbsolutePositionFromSVG = (targetSVG: Element, event): Position => {
-	  let targetRect = targetSVG.getBoundingClientRect();
-	  console.log('event.ClientX' , targetRect.left, event.clientX)
-	  let absolutePosition: Position ={
-		  x: event.clientX - targetRect.left,
-		  y: event.clientY - targetRect.top 
-	  }
-	  return absolutePosition;
-  }
-  
-  let oldWidth: number | undefined;
-  let oldHeight: number | undefined;
-  let oldScale: number | undefined;
-  
-  const enlargeMap = (targetSVG: Element ,centerPositon: Position, scale: number) => {
-	  
-  
-	  return function(){
-		  let parentRect = targetSVG.parentElement.getBoundingClientRect();
-		  let targetRect = targetSVG.getBoundingClientRect();
-		  oldScale = scale
-		  console.log(centerPositon, scale)
-		  console.log('width' ,parentRect.width, targetRect.width, centerPositon.x, targetSVG.getBoundingClientRect().left)
-		  console.log('height' ,parentRect.height, targetRect.height, centerPositon.y, targetSVG.getBoundingClientRect().top)
-		  console.log('old', oldWidth, oldHeight)
-  
-		  let transform = getTransform();
-		  let width = (parentRect.width / 2 - (centerPositon.x - Math.abs(targetSVG.getBoundingClientRect().left))) / transform.scale;
-		  let height = (parentRect.height / 2 - (centerPositon.y - Math.abs(targetSVG.getBoundingClientRect().top))) / transform.scale;
-	  
-		  document.documentElement.style.setProperty('--translate-x', `${transform.trnaslateX + width}px`);
-		  document.documentElement.style.setProperty('--translate-y', `${transform.translateY + height}px`);
-		  document.documentElement.style.setProperty('--scale', `${scale}`);
-		  
-		  console.log('width' ,parentRect.width, targetRect.width, centerPositon.x, targetSVG.getBoundingClientRect().left)
-		  console.log('height' ,parentRect.height, targetRect.height, centerPositon.y, targetSVG.getBoundingClientRect().top)
-		  targetSVG.classList.add('animationkjwon');
-	  }();
-  }
-  
-  const zoomInOut = (targetSVG: Element ,centerPositon: Position, scale: number, event: any) => {
-	  let parentRect = targetSVG.parentElement.getBoundingClientRect();
-	  let targetRect = targetSVG.getBoundingClientRect();
-  
-	  console.log(event.clientX, event.clientY)
-	  console.log('old', oldScale, scale)
-	  
-	  let width = 0, height = 0;
-  
-	  if(oldScale !== undefined){
-		  let gap = oldScale - scale;
-		  
-		  console.log(parentRect.width, gap, event.clientX)
-  
-		  width = parentRect.width * gap / 2 * event.clientX / parentRect.width; 
-		  height = parentRect.height * gap / 2 * event.clientY / parentRect.height; 
-	  }
-  
-	  oldScale = scale;
-	  let transform = getTransform();
-  
-	  document.documentElement.style.setProperty('--translate-x', `${transform.trnaslateX + width}px`);
-	  document.documentElement.style.setProperty('--translate-y', `${transform.translateY + height}px`);
-	  document.documentElement.style.setProperty('--scale', `${scale}`);
-	  
-	  console.log('width' ,parentRect.width, targetRect.width, centerPositon.x, targetSVG.getBoundingClientRect().left)
-	  console.log('height' ,parentRect.height, targetRect.height, centerPositon.y, targetSVG.getBoundingClientRect().top)
-	  targetSVG.classList.add('animationkjwon');
-  }
-  
-  const getTransform = (): Transform => {
-	  return {
-		  trnaslateX: Number(document.documentElement.style.getPropertyValue('--translate-x').match('\\d+')),
-		  translateY: Number(document.documentElement.style.getPropertyValue('--translate-y').match('\\d+')),
-		  scale: Number(document.documentElement.style.getPropertyValue('--scale'))
-	  };
-  }
-  
-  const onwheel = (event) => {
-	  let translateX = Number(document.documentElement.style.getPropertyValue('--translate-x').match('\\d+'))
-	  let translateY = Number(document.documentElement.style.getPropertyValue('--translate-y').match('\\d+'))
-	  let scale = Number(document.documentElement.style.getPropertyValue('--scale'))
-  
-	  let afterScale = scale + event.deltaY * -0.001;
-  
-	  let svg = document.getElementById('world-map-svg');
-	  
-	  let centerPosition: Position = {
-		  x: (-svg.getBoundingClientRect().left + event.clientX) / scale, 
-		  y: (-svg.getBoundingClientRect().top + event.clientY) / scale
-	  }
-  
-  
-	  zoomInOut(svg, getAbsolutePositionFromSVG(svg, event), afterScale < 1 ? 1 : afterScale, event);
-  };
-  
-  const mouseDown = (event) => {
-	  let svg = document.getElementById('world-map-svg');
-	  let originViewBox: string = svg.getAttribute('viewBox');
-	  let originViewBoxArray = originViewBox.split(' ');
-  
-	  let scale = Number(document.documentElement.style.getPropertyValue('--scale'));
-	  const mouseMove = (event2) => { 
-		  let originalX = event.clientX;
-		  let originalY = event.clientY;
-		  
-		  let moveX = originalX - event2.clientX;
-		  let moveY = originalY - event2.clientY;
-		  
-		  console.log(svg.clientHeight)
-		  svg.setAttribute('viewBox', `${(Number(originViewBoxArray[0]) + moveX)/scale} ${(Number(originViewBoxArray[1]) + moveY)/scale < 0 ? 0 : (Number(originViewBoxArray[1]) + moveY)/scale} 1576 1102`)
-	  };
-  
-	  const mouseUp = (event2) => { 
-		  removeEventListener('mousemove', mouseMove);
-		  removeEventListener('mouseup', mouseUp);
-	  };
-	  addEventListener("mousemove", mouseMove);
-  
-	  addEventListener("mouseup", mouseUp);
-  }
-  </script>
-  
-  <style lang="scss" scoped>
-  
-  :root {
-	  --translate-x: 0px;
-	  --translate-y: 0px;
-	  --scale: 1;
-  }
-  
-  .world-map-container{
+<style lang="scss" scoped>
+
+:root {
+	--translate-x: 0px;
+	--translate-y: 0px;
+	--scale: 1;
+	--transform-origin: 0px 0px;
+}
+
+.world-map-container{
 	width: 100%; /* 원하는 너비 */
 	height: 100%; /* 원하는 높이 */
 	overflow: hidden; /* 스크롤 막기 */
@@ -1795,30 +1809,11 @@
 		max-width: 100%; /* 부모의 가로 크기를 넘지 않도록 설정 */
 		max-height: 100%; /* 부모의 세로 크기를 넘지 않도록 설정 */
 	}
-  
+
 	svg {
-	  
+		
 	}
-  
-	
-  }
-  .animationkjwon{
-	animation-duration: 3s;
-	animation-name: slidein;
-	animation-fill-mode: forwards;  
-  }
-  
-  @keyframes slidein {
-	from {
-	  transform: translate(0, 0);
-	  scale: 1;
-	}
-  
-	to {
-	  transform: translate(var(--translate-x), var(--translate-y));
-	  scale: var(--scale);
-	}
-  }
-  </style>>
+}
+</style>
   
   
