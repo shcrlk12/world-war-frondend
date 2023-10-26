@@ -1606,7 +1606,7 @@
 	  c0-0.76,0.616-1.375,1.375-1.375C196.185,531.151,196.801,531.768,196.801,532.526z"/>
   </svg>
 	</div>
-  </template>
+</template>
   
 <script lang="ts" setup>
 import { onMounted, onBeforeMount } from 'vue';
@@ -1805,7 +1805,7 @@ const mouseDown = (event) => {
 	overflow: hidden; /* 스크롤 막기 */
 	svg{
 		width: 100%; /* SVG를 부모 컨테이너의 가로 크기에 맞춤 */
-		height: 100%; /* SVG를 부모 컨테이너의 세로 크기에 맞춤 */
+		height: 100%; /* SVG/를 부모 컨테이너의 세로 크기에 맞춤 */
 		max-width: 100%; /* 부모의 가로 크기를 넘지 않도록 설정 */
 		max-height: 100%; /* 부모의 세로 크기를 넘지 않도록 설정 */
 	}
